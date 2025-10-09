@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/userModel');
+const jwt = require('jsonwebtoken');
+const SECRET = process.env.JWT_SECRET;
+const { authenticateToken, isAdmin } = require('../middlewares/auth');
 
 /* GET tous les users */
 router.get('/', (req, res) => {
@@ -18,6 +21,7 @@ router.post('/register', (req, res) => {
 
     User.create({ name, email, password }, (err, user) => {
         if (err) {
+            console.error('Erreur lors de la création du user :', err);
             if (err.code === 'SQLITE_CONSTRAINT') {
                 return res.status(409).json({ error: 'Email déjà utilisé' });
             }
@@ -37,8 +41,16 @@ router.post('/login', (req, res) => {
         if (err) return res.status(500).json({ error: 'Erreur serveur' });
         if (!user) return res.status(401).json({ error: 'Identifiants invalides' });
 
-        res.json({ message: 'Connexion réussie', user: { id: user.id, name: user.name, email: user.email } });
+        const token = jwt.sign({ id: user.id, role: user.role }, SECRET, { expiresIn: '1h' });
+
+        res.json({ message: 'Connexion réussie', user: { id: user.id, name: user.name, email: user.email, role: user.role }, token: token });
     });
 });
+
+/* GET info personnel - Protégé */
+router.get('/me', authenticateToken, (req, res) => {
+    res.json({ message: 'Profil utilisateur', user: req.user });
+});
+
 
 module.exports = router;

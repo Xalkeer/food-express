@@ -1,23 +1,26 @@
-// models/User.js
 const db = require('../bin/bdd');
 const bcrypt = require('bcrypt');
 
 class User {
     static all(callback) {
-        db.all('SELECT id, name, email FROM users', [], callback);
+        db.all('SELECT id, name, email, role FROM users', [], callback);
     }
 
     static findByEmail(email, callback) {
         db.get('SELECT * FROM users WHERE email = ?', [email], callback);
     }
 
-    static async create({ name, email, password }, callback) {
+    static findById(id, callback) {
+        db.get('SELECT * FROM users WHERE id = ?', [id], callback);
+    }
+
+    static async create({ name, email, password, role = 'user' }, callback) {
         try {
             const hashedPassword = await bcrypt.hash(password, 10);
-            const sql = 'INSERT INTO users (name, email, password) VALUES (?, ?, ?)';
-            db.run(sql, [name, email, hashedPassword], function (err) {
+            const sql = 'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)';
+            db.run(sql, [name, email, hashedPassword, role], function (err) {
                 if (err) return callback(err);
-                callback(null, { id: this.lastID, name, email });
+                callback(null, { id: this.lastID, name, email, role });
             });
         } catch (err) {
             callback(err);
