@@ -53,48 +53,27 @@ router.get('/me', authenticateToken, (req, res) => {
     res.json({ message: 'Votre profil', user: { id: req.user.id, name: req.user.name, email: req.user.email, role: req.user.role }});
 });
 
-/* PUT update user - Protégé, admin ou soi-même */
-router.put('/:id', authenticateToken, (req, res) => {
-    const userId = parseInt(req.params.id, 10);
-    if (req.user.id !== userId && req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Accès interdit' });
-    }
-
-    const { name, email, password } = req.body;
-    User.findById(userId, (err, user) => {
+/* DELETE me - Protégé */
+router.delete('/me', authenticateToken, (req, res) => {
+    const userId = req.user.id;
+    const sql = 'DELETE FROM users WHERE id = ?';
+    const db = require('../bin/bdd');
+    db.run(sql, [userId], function(err) {
         if (err) return res.status(500).json({ error: 'Erreur base de données' });
-        if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
-
-        const updatedUser = {
-            name: name || user.name,
-            email: email || user.email,
-            password: password || user.password
-        };
-
-        User.create(updatedUser, (err, newUser) => {
-            if (err) return res.status(500).json({ error: 'Erreur base de données' });
-            res.json({ message: 'Utilisateur mis à jour', user: newUser });
-        });
+        if (this.changes === 0) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+        res.json({ message: 'Votre compte a été supprimé' });
     });
 });
 
-/* DELETE user - Protégé, admin ou soi-même */
-router.delete('/:id', authenticateToken, (req, res) => {
+/* DELETE un user par id - Protégé, admin seulement */
+router.delete('/:id', authenticateToken, isAdmin, (req, res) => {
     const userId = parseInt(req.params.id, 10);
-    if (req.user.id !== userId && req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Accès interdit' });
-    }
-
-    User.findById(userId, (err, user) => {
+    const sql = 'DELETE FROM users WHERE id = ?';
+    const db = require('../bin/bdd');
+    db.run(sql, [userId], function(err) {
         if (err) return res.status(500).json({ error: 'Erreur base de données' });
-        if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
-
-        const sql = 'DELETE FROM users WHERE id = ?';
-        const db = require('../bin/bdd');
-        db.run(sql, [userId], function(err) {
-            if (err) return res.status(500).json({ error: 'Erreur base de données' });
-            res.json({ message: 'Utilisateur supprimé' });
-        });
+        if (this.changes === 0) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+        res.json({ message: 'Utilisateur supprimé' });
     });
 });
 
@@ -105,6 +84,81 @@ router.delete('/', authenticateToken, isAdmin, (req, res) => {
     db.run(sql, function(err) {
         if (err) return res.status(500).json({ error: 'Erreur base de données' });
         res.json({ message: 'Tous les utilisateurs ont été supprimés' });
+    });
+});
+
+/* PUT update me - Protégé */
+router.put('/me', authenticateToken, (req, res) => {
+    const userId = req.user.id;
+    const { name, email, password } = req.body;
+
+    User.findById(userId, async (err, user) => {
+        if (err) return res.status(500).json({ error: 'Erreur base de données' });
+        if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+
+        const updatedName = name || user.name;
+        const updatedEmail = email || user.email;
+        let updatedPassword = user.password;
+
+        if (password) {
+            try {
+                updatedPassword = await require('bcrypt').hash(password, 10);
+            } catch (hashErr) {
+                return res.status(500).json({ error: 'Erreur lors du hachage du mot de passe' });
+            }
+        }
+
+        const sql = 'UPDATE users SET name = ?, email = ?, password = ? WHERE id = ?';
+        const db = require('../bin/bdd');
+        db.run(sql, [updatedName, updatedEmail, updatedPassword, userId], function(err) {
+            if (err) {
+                console.error('Erreur lors de la mise à jour du user :', err);
+                if (err.code === 'SQLITE_CONSTRAINT') {
+                    return res.status(409).json({ error: 'Email déjà utilisé' });
+                }
+                return res.status(500).json({ error: 'Erreur base de données' });
+            }
+            const token = jwt.sign({ id: user.id, name: user.name, email: user.email, role: user.role }, SECRET, { expiresIn: '1h' });
+
+            res.json({ message: 'Modification reussi', newtoken: token });
+        });
+    });
+});
+
+/* PUT update un user par id - Protégé, admin seulement */
+router.put('/:id', authenticateToken, isAdmin, (req, res) => {
+    const userId = parseInt(req.params.id, 10);
+    const { name, email, password, role } = req.body;
+
+    User.findById(userId, async (err, user) => {
+        if (err) return res.status(500).json({ error: 'Erreur base de données' });
+        if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+
+        const updatedName = name || user.name;
+        const updatedEmail = email || user.email;
+        const updatedRole = role || user.role;
+        let updatedPassword = user.password;
+
+        if (password) {
+            try {
+                updatedPassword = await require('bcrypt').hash(password, 10);
+            } catch (hashErr) {
+                return res.status(500).json({ error: 'Erreur lors du hachage du mot de passe' });
+            }
+        }
+
+        const sql = 'UPDATE users SET name = ?, email = ?, password = ?, role = ? WHERE id = ?';
+        const db = require('../bin/bdd');
+        db.run(sql, [updatedName, updatedEmail, updatedPassword, updatedRole, userId], function(err) {
+            if (err) {
+                console.error('Erreur lors de la mise à jour du user :', err);
+                if (err.code === 'SQLITE_CONSTRAINT') {
+                    return res.status(409).json({ error: 'Email déjà utilisé' });
+                }
+                return res.status(500).json({ error: 'Erreur base de données' });
+            }
+            res.json({ message: 'Utilisateur modifié' });
+        });
     });
 });
 
