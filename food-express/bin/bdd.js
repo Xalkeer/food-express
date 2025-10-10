@@ -14,12 +14,23 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 db.run(`
     CREATE TABLE IF NOT EXISTS users (
-     id INTEGER PRIMARY KEY AUTOINCREMENT,
-     name TEXT NOT NULL,
-     email TEXT UNIQUE NOT NULL,
-     password TEXT NOT NULL,
-     role TEXT NOT NULL DEFAULT 'user'
+                                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                         name TEXT NOT NULL,
+                                         email TEXT UNIQUE NOT NULL,
+                                         password TEXT NOT NULL,
+                                         role TEXT NOT NULL DEFAULT 'user'
     )
 `);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS restaurants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    address TEXT NOT NULL,
+    phone TEXT,
+    opening_hours TEXT NOT NULL DEFAULT '08:00-22:00'
+  )
+`);
+
 
 module.exports = db;
