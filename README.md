@@ -95,3 +95,5 @@ Réponse
   ]
 }
 ```
+> [!CAUTION]
+> Nous avons mis un fichier `.env` dans notre GitHub pour le bon déroulé de ce projet, en situation réelle ça ne serait pas le cas.
