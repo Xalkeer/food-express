@@ -68,7 +68,7 @@ class User {
                 params.push(hashedPassword);
             }
 
-            if (updates.length === 0) return callback(null, 0); // rien à modifier
+            if (updates.length === 0) return callback(null, 0);
 
             const sql = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
             params.push(id);
