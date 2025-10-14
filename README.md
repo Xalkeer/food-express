@@ -5,6 +5,10 @@ npm install
 ```
 Api disponible par défault sur http://localhost:3000 
 # Script
+Allez dans le dossier du projet
+```
+cd .\food-express\
+```
 Pour lancer en DEV (avec Nodemon)
 ```
 npm run dev
