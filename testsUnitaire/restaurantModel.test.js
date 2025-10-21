@@ -7,7 +7,7 @@ jest.mock('../bin/bdd', () => {
 });
 
 const dbMock = require('../bin/bdd');
-const Restaurant = require('../models/restaurantModel');
+const Restaurant = require('../services/restaurantModel');
 
 describe('Restaurant model', () => {
     beforeEach(() => {

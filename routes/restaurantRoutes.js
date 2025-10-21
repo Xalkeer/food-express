@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Restaurant = require('../models/restaurantModel');
+const Restaurant = require('../services/restaurantModel');
 const { authenticateToken, isAdmin } = require('../middlewares/auth');
 
 /**

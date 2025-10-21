@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Menu = require('../models/menuModel');
+const Menu = require('../services/menuModel');
 const { authenticateToken, isAdmin } = require('../middlewares/auth');
 
 /**

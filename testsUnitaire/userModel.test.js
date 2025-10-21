@@ -1,5 +1,3 @@
-// Faire des tests avec de la merde dedans
-
 jest.mock('../bin/bdd', () => {
     return {
         all: jest.fn(),
@@ -8,58 +6,64 @@ jest.mock('../bin/bdd', () => {
     };
 });
 
-const dbMock = require('../bin/bdd'); // get the mocked instance
-const Menu = require('../models/menuModel');
+const dbMock = require('../bin/bdd');
+const User = require('../services/userModel');
 
-describe('Menu model', () => {
+describe('User model', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
-    test('getAll returns object', done => {
+    test('all returns list of users', done => {
         const rows = [
-            { id: 1, restaurant_id: 2, name: 'Menu A', description: '', price: 10, category: 'main' }
+            { id: 1, name: 'Alice', email: 'a@x.com', role: 'user' }
         ];
         dbMock.all.mockImplementationOnce((sql, params, cb) => cb(null, rows));
-        dbMock.get.mockImplementationOnce((sql, params, cb) => cb(null, { total: 1 }));
 
-        Menu.getAll({ sort: 'name', limit: 5, offset: 0 }, (err, result) => {
+        User.all((err, users) => {
             expect(err).toBeNull();
-            expect(result).toBeDefined();
-            expect(result.total).toBe(1);
-            expect(result.data).toEqual(rows);
+            expect(users).toEqual(rows);
             expect(dbMock.all).toHaveBeenCalled();
-            expect(dbMock.get).toHaveBeenCalled();
             done();
         });
     });
 
-
-
-    test('create inserts and returns created object', done => {
+    test('create inserts and returns created user', done => {
         dbMock.run.mockImplementationOnce(function (sql, params, cb) {
-            this.lastID = 42;
+            this.lastID = 55;
             cb.call(this, null);
         });
 
-        const payload = { restaurant_id: 3, name: 'New Menu', description: 'desc', price: 12.5, category: 'dessert' };
-        Menu.create(payload, (err, menu) => {
+        const payload = { name: 'Bob', email: 'b@x.com', password: 'secret' };
+        User.create(payload, (err, user) => {
             expect(err).toBeNull();
-            expect(menu).toBeDefined();
-            expect(menu.id).toBe(42);
-            expect(menu.name).toBe(payload.name);
+            expect(user).toBeDefined();
+            expect(user.id).toBe(55);
+            expect(user.name).toBe(payload.name);
             expect(dbMock.run).toHaveBeenCalled();
             done();
         });
     });
 
-    test('update returns number of changed rows', done => {
+    test('findById returns a user', done => {
+        const row = { id: 2, name: 'Carol', email: 'c@x.com', role: 'admin' };
+        dbMock.get.mockImplementationOnce((sql, params, cb) => cb(null, row));
+
+        User.findById(2, (err, user) => {
+            expect(err).toBeNull();
+            expect(user).toEqual(row);
+            expect(dbMock.get).toHaveBeenCalled();
+            done();
+        });
+    });
+
+    test('update returns number', done => {
         dbMock.run.mockImplementationOnce(function (sql, params, cb) {
             this.changes = 1;
             cb.call(this, null);
         });
 
-        Menu.update(5, { name: 'Updated' }, (err, changes) => {
+        User.update(5, { name: 'Updated Name' }, (err, changes) => {
             expect(err).toBeNull();
             expect(changes).toBe(1);
             expect(dbMock.run).toHaveBeenCalled();
@@ -67,13 +71,13 @@ describe('Menu model', () => {
         });
     });
 
-    test('deleteById returns changes count', done => {
+    test('deleteById returns', done => {
         dbMock.run.mockImplementationOnce(function (sql, params, cb) {
             this.changes = 1;
             cb.call(this, null);
         });
 
-        Menu.deleteById(7, (err, changes) => {
+        User.deleteById(7, (err, changes) => {
             expect(err).toBeNull();
             expect(changes).toBe(1);
             expect(dbMock.run).toHaveBeenCalled();
@@ -82,7 +86,7 @@ describe('Menu model', () => {
     });
 
     test('update with no fields returns 0 changes', done => {
-        Menu.update(1, {}, (err, changes) => {
+        User.update(1, {}, (err, changes) => {
             expect(err).toBeNull();
             expect(changes).toBe(0);
             done();
